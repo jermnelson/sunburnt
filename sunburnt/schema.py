@@ -652,6 +652,7 @@ class SolrResponse(object):
                                   for node in more_like_these_nodes]
         self.more_like_these = dict((n.name, n)
                                          for n in more_like_these_results)
+        self.spellcheck = SolrSpellCheck(doc.xpath("/response/lst[@name='spellcheck']"))
         if len(self.more_like_these) == 1:
             self.more_like_this = self.more_like_these.values()[0]
         else:
@@ -686,6 +687,21 @@ class SolrResult(object):
     def __str__(self):
         return "%(numFound)s results found, starting at #%(start)s\n\n" % self.__dict__ + str(self.docs)
 
+
+class SolrSpellCheck(object):
+    def __init__(self,spellcheck):
+        self.misspelledTerm,self.suggestions = None,[]
+        if len(spellcheck) > 0:
+            for element in spellcheck: 
+                self.misspelledTerm = element.xpath("lst[@name='suggestions']/lst/@name")
+                suggestion_list = element.xpath("lst[@name='suggestions']/lst/arr[@name='suggestion']/lst")
+                self.suggestions.extend([{'word':n.find("str").text,
+                                          'freq':n.find("int").text} for n in suggestion_list])
+
+    
+    def __str__(self):
+        return str(self.suggestions)
+        
 
 def object_to_dict(o, names):
     return dict((name, getattr(o, name)) for name in names
